@@ -1,10 +1,9 @@
 ---
-db_name: django_project
-db_user: django_user
-db_passwd: qwerty1234
-python_ver: python3.9
-pgadmin_admin_email: test@te.st
-pgadmin_admin_passwd: qwerty123
-domain_name: example.com
-django_project_name: django_project
-django_key: 5#sg3$!KL!yaFyh$msSa9&JW6pc1M2vcm2S&%9#Sz$M9!b6eFt* # REPLACE THIS KEY WITH YOUR OWN
+domain_name: 
+db_name: 
+db_user: 
+db_passwd: 
+pgadmin_admin_email: 
+pgadmin_admin_passwd: 
+django_project_name: 
+django_key: 
