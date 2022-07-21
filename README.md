@@ -107,8 +107,8 @@ Set the ALLOWED_HOST directive.
 ```py
 ALLOWED_HOSTS = ['localhost', '$DOMAIN_OR_IP', 'www.$DOMAIN_OR_IP']
 ```
-*$DOMAIN_OR_IP - domain or ip address of your server.*\
-
+*Replace $DOMAIN_OR_IP with domain or ip address of your server.*  
+\
 Set PostgreSQL as default DB. In *~/django/django_project/settings.py* edit *DATABASES* directive.  
 ***Replace \$PASSWORD with the value which you have set in your database.***
 
@@ -150,37 +150,37 @@ Create config for Django.
 */etc/uwsgi/django.ini*
 ```ini
 [uwsgi]
-project = django
+project = /home/$USER_NAME/django
 project_name = django_project
-uid = admin
-base = /home/%(uid)
+user = $USER_NAME
 
-chdir = %(base)/%(project)
-home = %(base)/%(project)
+chdir = %(project)
 module = %(project_name).wsgi:application
 
 master = true
 processes = 5
 
 socket = /tmp/%(project_name).sock
-chown-socket = %(uid):www-data
+chown-socket = %(user):www-data
 chmod-socket = 660
 vacuum = true
 ```
+*Replace $USER_NAME with your username.*  
+\
 Create systemd-service for Django project.  
 */etc/systemd/system/django_uwsgi.service* 
 ```ini
 [Unit]
-Description=django on uWSGI
+Description=Django on uWSGI
 Requires=network.target
 After=network.target
 
 [Service]
-User=admin
+User=$USER_NAME
 Group=www-data
-WorkingDirectory=/home/admin/django
-Environment="PATH=/home/admin/django/bin"
-ExecStart= /home/admin/django/bin/uwsgi --ini /etc/uwsgi/django.ini
+WorkingDirectory=/home/$USER_NAME/django
+Environment="PATH=/home/$USER_NAME/django/bin"
+ExecStart= /home/$USER_NAME/django/bin/uwsgi --ini /etc/uwsgi/django.ini
 Restart=on-failure
 RestartSec=10
 KillSignal=SIGQUIT
@@ -191,6 +191,8 @@ StandardError=syslog
 [Install]
 WantedBy=multi-user.target
 ```
+*Replace $USER_NAME with your username.*  
+\
 Start django_uwsgi service.
 ```bash
 sudo systemctl enable --now django_uwsgi.service
@@ -199,25 +201,25 @@ Create config for pgAdmin.
 */etc/uwsgi/pgadmin.ini*
 ```ini
 [uwsgi]
-project = pgadmin
-project_name = %(project)
-uid = admin
-base = /home/%(uid)
+project = /home/$USER_NAME/pgadmin
+project_name = pgadmin
+user = $USER_NAME
 
-chdir = %(base)/%(project)/lib/python3.9/site-packages/pgadmin4/
-home = %(base)/%(project)
+chdir = %(project)/lib/python3.9/site-packages/pgadmin4/
+mount = /pgadmin4=pgAdmin4:app
 
 master = true
 processes = 1
 threads = 25
 
 socket = /tmp/%(project_name).sock
-chown-socket = %(uid):www-data
+chown-socket = %(user):www-data
 chmod-socket = 660
-mount = /pgadmin4=pgAdmin4:app
 manage-script-name = true
 vacuum = true
 ```
+*Replace $USER_NAME with your username.*  
+\
 Create systemd-service for pgAdmin.  
 */etc/systemd/system/pgadmin_uwsgi.service* 
 ```ini
@@ -227,11 +229,11 @@ Requires=network.target
 After=network.target
 
 [Service]
-User=admin
+User=$USER_NAME
 Group=www-data
-WorkingDirectory=/home/admin/pgadmin/lib/python3.9/site-packages/pgadmin4
-Environment="PATH=/home/admin/pgadmin/bin"
-ExecStart= /home/admin/pgadmin/bin/uwsgi --ini /etc/uwsgi/pgadmin.ini
+WorkingDirectory=/home/$USER_NAME/pgadmin/lib/python3.9/site-packages/pgadmin4
+Environment="PATH=/home/$USER_NAME/pgadmin/bin"
+ExecStart= /home/$USER_NAME/pgadmin/bin/uwsgi --ini /etc/uwsgi/pgadmin.ini
 Restart=on-failure
 RestartSec=10
 KillSignal=SIGQUIT
@@ -242,6 +244,8 @@ StandardError=syslog
 [Install]
 WantedBy=multi-user.target
 ```
+*Replace $USER_NAME with your username.*  
+\
 Start pgadmin_uwsgi service.
 ```bash
 sudo systemctl enable --now pgadmin_uwsgi.service
@@ -265,7 +269,7 @@ server {
     client_max_body_size 75M;
 
     location /static {
-        alias /home/admin/django/static;
+        alias /home/$USER_NAME/django/static;
     }
 
     location / {
@@ -281,18 +285,18 @@ server {
     }
 }
 ```
-*$DOMAIN_NAME - domain name of your server.*\
-
+*Replace $DOMAIN_NAME with domain name of your server and $USER_NAME with your username.*  
+\
 Enbale this config.
 ```bash
 sudo ln -s /etc/nginx/sites-available/test_project.conf /etc/nginx/sites-enabled/
 ```
 Gen SSL cert from Let's Encrypt.
 ```bash
-sudo certbot --nginx --agree-tos --register-unsafely-without-email -d $DOMAIN_NAME -d www.$DOMAIN_NAME
+sudo certbot --nginx --agree-tos --register-unsafely-without-email -n -d $DOMAIN_NAME -d www.$DOMAIN_NAME
 ```
- *$DOMAIN_NAME -  domain name of your server.*\
-
+*Replace $DOMAIN_NAME with domain name of your server.*  
+\
 Verify that certificate auto-renewal works.
 ```bash
 systemctl status certbot.timer
@@ -303,5 +307,4 @@ systemctl status certbot.timer
      Active: active (waiting) since Wed 2022-07-20 23:17:41 UTC; 28min ago
     Trigger: Thu 2022-07-21 08:53:46 UTC; 9h left
    Triggers: ● certbot.service
-
 ```
