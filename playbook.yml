@@ -1,0 +1,268 @@
+---
+- name: 3DLOOK test task
+  hosts: all
+
+  vars:
+    pgadmin_env: '{{ ansible_user_dir }}/pgadmin'
+    django_env: '{{ ansible_user_dir }}/django'
+    ansible_files: '{{ playbook_dir }}/files'
+    ansible_templates: '{{ playbook_dir }}/templates'
+
+  vars_files:
+    - vars_file.yml
+
+  tasks:
+
+### Update system and install necessary pkgs
+
+    - block:
+        - name: Update Debian
+          apt:
+            name: '*'
+            state: latest
+            update_cache: true
+
+        - name: Install necessary packages
+          apt:
+            name:
+              - python3-pip
+              - python3-dev
+              - python3-psycopg2
+              - python3-pexpect
+              - python3-certbot
+              - python3-certbot-nginx
+              - virtualenv
+              - postgresql
+              - postgresql-contrib
+              - acl
+              - curl
+              - nginx
+              - ufw
+            state: latest
+            update_cache: true
+
+      become: true
+      when: ansible_os_family == "Debian"
+
+### Config firewall
+
+    - block:
+        - name: Allow SSH
+          ufw:
+            state: enabled
+            rule: allow
+            port: 22
+            proto: tcp
+
+        - name: Allow HTTP
+          ufw:
+            rule: allow
+            port: 80
+            proto: tcp
+
+        - name: Allow HTTPS
+          ufw:
+            rule: allow
+            port: 443
+            proto: tcp
+
+      become: true
+
+### Database
+
+    - block:
+        - name: Create a new database for Django proect
+          become: true
+          become_user: postgres
+          postgresql_db:
+            name: '{{ db_name }}'
+            encoding: UTF-8
+            state: present
+
+        - name: Create user
+          postgresql_user: db={{ db_name }} name={{ db_user }} password={{ db_passwd
+            }} priv=ALL state=present
+
+        - name: Make daily db backup
+          cron:
+            name: Backup db
+            minute: '59'
+            hour: '0'
+            job: pg_basebackup -Ft -z -D /opt/postgres_backup/$(date +\%d_\%m_\%Y)/
+
+      become: true
+      become_user: postgres
+
+### uWSGI config dir
+
+    - name: Create uWSGI config dir
+      file:
+        path: /etc/uwsgi
+        state: directory
+      become: true
+
+### pgAdmin
+
+    - name: Install pgAdmin and uWSGI
+      pip:
+        name:
+          - pgadmin4
+          - uwsgi
+        virtualenv: '{{ pgadmin_env }}/'
+        virtualenv_python: '{{ python_ver }}'
+
+    - name: Create necessary for pgAdmin dirs
+      file:
+        path: '{{ item }}'
+        state: directory
+        owner: '{{ ansible_user }}'
+        recurse: true
+      with_items:
+        - /var/lib/pgadmin/storage
+        - /var/lib/pgadmin/sessions
+        - /var/log/pgadmin
+      become: true
+
+    - name: Config pgAdmin
+      copy:
+        src: '{{ ansible_files }}/config_local.py'
+        dest: '{{ pgadmin_env }}/lib/{{ python_ver }}/site-packages/pgadmin4/'
+
+    - name: Creating configuration database
+      expect:
+        command: '{{ pgadmin_env }}/bin/python3 {{ pgadmin_env }}/lib/{{ python_ver
+          }}/site-packages/pgadmin4/setup.py'
+        creates: /var/lib/pgadmin/pgadmin.db
+        responses:
+          'Email address:': '{{ pgadmin_admin_email }}'
+          (?i).*password: '{{ pgadmin_admin_passwd }}'
+
+    - block:
+        - name: Config uWSGI for pgAdmin
+          template:
+            src: '{{ ansible_templates }}/pgadmin.j2'
+            dest: /etc/uwsgi/pgadmin.ini
+
+        - name: pgAdmin autostart daemon
+          template:
+            src: '{{ ansible_templates }}/pgadmin_uwsgi.j2'
+            dest: /etc/systemd/system/pgadmin_uwsgi.service
+          notify: Start pgAdmin uWSGI
+
+      become: true
+
+### Django
+
+    - block:
+        - name: Install Django, psycopg2-binary and uWSGI
+          pip:
+            name:
+              - django
+              - uwsgi
+              - psycopg2-binary
+            virtualenv: '{{ django_env }}/'
+            virtualenv_python: '{{ python_ver }}'
+
+        - name: Create Django project
+          shell:
+            cmd: '{{ django_env }}/bin/django-admin startproject {{ django_project_name
+              }} {{ django_env }}'
+            creates: '{{ django_env }}/{{ django_project_name }}'
+
+        - name: Config Django project
+          template:
+            src: '{{ ansible_templates }}/settings.j2'
+            dest: '{{ django_env }}/{{ django_project_name }}/settings.py'
+
+        - name: Migrate schema to postgres and collect static content
+          django_manage:
+            command: '{{ item }}'
+            app_path: '{{ django_env }}'
+            virtualenv: '{{ django_env }}'
+          with_items:
+            - makemigrations
+            - migrate
+            - collectstatic
+
+    - block:
+        - name: Config uWSGI for Django
+          template:
+            src: '{{ ansible_templates }}/django.j2'
+            dest: /etc/uwsgi/django.ini
+
+        - name: Django autostart daemon
+          template:
+            src: '{{ ansible_templates }}/django_uwsgi.j2'
+            dest: /etc/systemd/system/django_uwsgi.service
+          notify: Start Django uWSGI
+
+      become: true
+
+### Nginx
+
+    - block:
+        - name: Config Nginx
+          template:
+            src: '{{ ansible_templates }}/nginx_server.j2'
+            dest: /etc/nginx/sites-available/nginx_server.conf
+
+        - name: Enable config
+          file:
+            src: /etc/nginx/sites-available/nginx_server.conf
+            dest: /etc/nginx/sites-enabled/default
+            state: link
+          notify: Restart Nginx
+
+        - name: Get Let's Encrypt cert
+          shell:
+            cmd: certbot --nginx --agree-tos --register-unsafely-without-email -n
+              -d {{ domain_name }} -d www.{{ domain_name }}
+          notify: Restart Nginx
+          tags: ssl_cert
+
+      become: true
+
+### Print links
+
+    - block:
+        - name: Print Django test project url (Vagrant)
+          debug:
+            msg: ' Django test project: http://localhost:8080 '
+
+        - name: Print pgAdmin url (Vagrant)
+          debug:
+            msg: ' pgAdmin: http://localhost:8080/pgadmin4 '
+      when: this_in_vagrant is defined
+
+    - block:
+        - name: Print Django test project url
+          debug:
+            msg: ' Django test project: http://{{ domain_name }} '
+
+        - name: Print pgAdmin url
+          debug:
+            msg: ' pgAdmin: http://{{ domain_name }}/pgadmin4 '
+      when: this_in_vagrant is undefined
+
+### Handlers
+
+  handlers:
+    - block:
+        - name: Start pgAdmin uWSGI
+          service:
+            name: pgadmin_uwsgi
+            state: started
+            enabled: true
+
+        - name: Start Django uWSGI
+          service:
+            name: django_uwsgi
+            state: started
+            enabled: true
+
+        - name: Restart Nginx
+          service:
+            name: nginx
+            state: restarted
+
+      become: true

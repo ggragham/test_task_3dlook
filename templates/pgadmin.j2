@@ -1,0 +1,17 @@
+[uwsgi]
+project = {{ pgadmin_env }}
+project_name = pgadmin
+user = {{ ansible_user }}
+
+chdir = %(project)/lib/{{ python_ver }}/site-packages/pgadmin4/
+mount = /pgadmin4=pgAdmin4:app
+
+master = true
+processes = 1
+threads = 25
+
+socket = /tmp/%(project_name).sock
+chown-socket = %(user):www-data
+chmod-socket = 660
+manage-script-name = true
+vacuum = true

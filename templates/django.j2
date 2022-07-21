@@ -1,0 +1,15 @@
+[uwsgi]
+project = {{ django_env }}
+project_name = {{ django_project_name }}
+user = {{ ansible_user }}
+
+chdir = %(project)
+module = %(project_name).wsgi:application
+
+master = true
+processes = 5
+
+socket = /tmp/%(project_name).sock
+chown-socket = %(user):www-data
+chmod-socket = 660
+vacuum = true

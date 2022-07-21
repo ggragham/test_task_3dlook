@@ -1,0 +1,31 @@
+upstream django {
+    server unix:///tmp/django_project.sock;
+}
+
+upstream pgadmin {
+    server unix:///tmp/pgadmin.sock;
+}
+
+server {
+    listen      80;
+    server_name {{ domain_name }} www.{{ domain_name }};
+    charset     utf-8;
+
+    client_max_body_size 75M;
+
+    location /static {
+        alias {{ django_env }}/static;
+    }
+
+    location / {
+        include     /etc/nginx/uwsgi_params;
+        uwsgi_pass  django;
+    }
+
+    location = /pgadmin4 { rewrite ^ /pgadmin4/; }
+    location /pgadmin4 { try_files $uri @pgadmin4; }
+    location @pgadmin4 {
+    include /etc/nginx/uwsgi_params;
+    uwsgi_pass pgadmin;
+    }
+}
