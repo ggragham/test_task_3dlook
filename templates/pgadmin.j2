@@ -10,7 +10,7 @@ master = true
 processes = 1
 threads = 25
 
-socket = /tmp/%(project_name).sock
+socket = /tmp/%(project_name)_{{ item }}.sock
 chown-socket = %(user):www-data
 chmod-socket = 660
 manage-script-name = true

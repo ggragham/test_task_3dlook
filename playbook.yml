@@ -142,12 +142,18 @@
         - name: Config uWSGI for pgAdmin
           template:
             src: '{{ ansible_templates }}/pgadmin.j2'
-            dest: /etc/uwsgi/pgadmin.ini
+            dest: /etc/uwsgi/pgadmin_{{ item }}.ini
+          with_items:
+            - main
+            - spare
 
         - name: pgAdmin autostart daemon
           template:
             src: '{{ ansible_templates }}/pgadmin_uwsgi.j2'
-            dest: /etc/systemd/system/pgadmin_uwsgi.service
+            dest: /etc/systemd/system/pgadmin_uwsgi_{{ item }}.service
+          with_items:
+            - main
+            - spare
           notify: Start pgAdmin uWSGI
 
       become: true
@@ -189,12 +195,18 @@
         - name: Config uWSGI for Django
           template:
             src: '{{ ansible_templates }}/django.j2'
-            dest: /etc/uwsgi/django.ini
+            dest: /etc/uwsgi/django_{{ item }}.ini
+          with_items:
+            - main
+            - spare
 
         - name: Django autostart daemon
           template:
             src: '{{ ansible_templates }}/django_uwsgi.j2'
-            dest: /etc/systemd/system/django_uwsgi.service
+            dest: /etc/systemd/system/django_uwsgi_{{ item }}.service
+          with_items:
+            - main
+            - spare
           notify: Start Django uWSGI
 
       become: true
@@ -212,7 +224,6 @@
             src: /etc/nginx/sites-available/nginx_server.conf
             dest: /etc/nginx/sites-enabled/default
             state: link
-          notify: Restart Nginx
 
         - name: Get Let's Encrypt cert
           shell:
@@ -221,6 +232,7 @@
           notify: Restart Nginx
           tags: ssl_cert
 
+      notify: Restart Nginx
       become: true
 
 ### Print links
@@ -251,15 +263,21 @@
     - block:
         - name: Start pgAdmin uWSGI
           service:
-            name: pgadmin_uwsgi
+            name: pgadmin_uwsgi_{{ item }}
             state: started
             enabled: true
+          with_items:
+            - main
+            - spare
 
         - name: Start Django uWSGI
           service:
-            name: django_uwsgi
+            name: django_uwsgi_{{ item }}
             state: started
             enabled: true
+          with_items:
+            - main
+            - spare
 
         - name: Restart Nginx
           service:

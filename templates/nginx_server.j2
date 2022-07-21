@@ -1,9 +1,11 @@
 upstream django {
-    server unix:///tmp/django_project.sock;
+    server unix:///tmp/django_project_main.sock fail_timeout=10 max_fails=1;
+    server unix:///tmp/django_project_spare.sock;
 }
 
 upstream pgadmin {
-    server unix:///tmp/pgadmin.sock;
+    server unix:///tmp/pgadmin_main.sock fail_timeout=10 max_fails=1;
+    server unix:///tmp/pgadmin_spare.sock;
 }
 
 server {

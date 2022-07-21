@@ -1,5 +1,5 @@
 [Unit]
-Description= {{ django_project_name }} on uWSGI
+Description= {{ item }} {{ django_project_name }} on uWSGI
 Requires=network.target
 After=network.target
 
@@ -8,7 +8,7 @@ User={{ ansible_user }}
 Group=www-data
 WorkingDirectory={{ django_env }}
 Environment="PATH={{ django_env }}/bin"
-ExecStart= {{ django_env }}/bin/uwsgi --ini /etc/uwsgi/django.ini
+ExecStart= {{ django_env }}/bin/uwsgi --ini /etc/uwsgi/django_{{ item }}.ini
 Restart=on-failure
 RestartSec=10
 KillSignal=SIGQUIT

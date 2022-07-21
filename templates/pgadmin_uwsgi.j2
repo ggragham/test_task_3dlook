@@ -1,5 +1,5 @@
 [Unit]
-Description=pgadmin4 on uWSGI
+Description= {{ item }} pgadmin4 on uWSGI
 Requires=network.target
 After=network.target
 
@@ -8,7 +8,7 @@ User={{ ansible_user }}
 Group=www-data
 WorkingDirectory={{ pgadmin_env }}/lib/{{ python_ver }}/site-packages/pgadmin4
 Environment="PATH={{ pgadmin_env }}/bin"
-ExecStart= {{ pgadmin_env }}/bin/uwsgi --ini /etc/uwsgi/pgadmin.ini
+ExecStart= {{ pgadmin_env }}/bin/uwsgi --ini /etc/uwsgi/pgadmin_{{ item }}.ini
 Restart=on-failure
 RestartSec=10
 KillSignal=SIGQUIT

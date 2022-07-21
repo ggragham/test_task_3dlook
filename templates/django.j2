@@ -9,7 +9,7 @@ module = %(project_name).wsgi:application
 master = true
 processes = 5
 
-socket = /tmp/%(project_name).sock
+socket = /tmp/%(project_name)_{{ item }}.sock
 chown-socket = %(user):www-data
 chmod-socket = 660
 vacuum = true
