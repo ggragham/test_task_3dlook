@@ -3,6 +3,7 @@
   hosts: all
 
   vars:
+    python_ver: python3.9
     pgadmin_env: '{{ ansible_user_dir }}/pgadmin'
     django_env: '{{ ansible_user_dir }}/django'
     ansible_files: '{{ playbook_dir }}/files'
