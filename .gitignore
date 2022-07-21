@@ -1,0 +1,7 @@
+# Ansible
+inventory.yml
+vars_file.yml
+*.retry
+
+# Vagrant
+.vagrant/
