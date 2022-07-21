@@ -1,5 +1,72 @@
 # 3DLOOK test task
 
+## Automatic deployment
+### Dependencies
+- python3
+- pip
+- pipenv
+- VirtualBox
+- Vagrant
+
+### Prepare python environment
+```bash
+pipenv install -r requirements.txt
+```
+### Prepare inventory file
+Make copy of *inventory.yml.template* and rename it to *inventory.yml*.
+```bash
+cp inventory.yml.template inventory.yml
+```
+Open a text editor and fill in the given directives.
+```bash
+vi inventory.yml
+```
+Example:
+```yml
+all:
+  hosts:
+    server:
+      ansible_host: 192.168.1.24
+      ansible_user: admin
+      ansible_ssh_private_key_file: ~/.ssh/server.pem
+```
+
+### Prepare vars_file
+Make copy of *vars_file.yml.template* and rename it to *vars_file.yml*.
+```bash
+cp vars_file.yml.template vars_file.yml
+```
+Open a text editor and fill in the given directives.
+```bash
+vi vars_file.yml
+```
+Example:
+```yml
+db_name: django_project
+db_user: django_user
+db_passwd: qwerty1234
+pgadmin_admin_email: test@te.st
+pgadmin_admin_passwd: qwerty123
+domain_name: jofurytestsowntest.tk
+django_project_name: django_project
+django_key: 5#sg3$!KL!yaFyh$msSa9&JW6pc1M2vcm2S&%9#Sz$M9!b6eFt*
+```
+
+### Deployment
+Enter to pipenv shell
+```bash
+pipenv shell
+```
+Apply playbook
+```bash
+ansible-playbook playbook.yml
+```
+For local deployment via Vagrant
+```bash
+vagrant up --provision
+```
+
+
 ## Manual deployment
 ### Base system configure
 Update system and install the necessary packages.
