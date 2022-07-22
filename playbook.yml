@@ -69,6 +69,23 @@
 
       become: true
 
+### Make dirs
+
+    - block:
+        - name: Create PostgreSQL backup dir
+          file:
+            path: /var/postgres_backup
+            state: directory
+            owner: postgres
+            recurse: true
+
+        - name: Create uWSGI config dir
+          file:
+            path: /etc/uwsgi
+            state: directory
+
+      become: true
+
 ### Database
 
     - block:
@@ -89,18 +106,10 @@
             name: Backup db
             minute: '59'
             hour: '0'
-            job: pg_basebackup -Ft -z -D /opt/postgres_backup/$(date +\%d_\%m_\%Y)/
+            job: pg_basebackup -Ft -z -D /var/postgres_backup/$(date +\%d_\%m_\%Y)/
 
       become: true
       become_user: postgres
-
-### uWSGI config dir
-
-    - name: Create uWSGI config dir
-      file:
-        path: /etc/uwsgi
-        state: directory
-      become: true
 
 ### pgAdmin
 

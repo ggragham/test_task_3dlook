@@ -107,13 +107,23 @@ ALTER ROLE django_user SET timezone TO 'UTC';
 GRANT ALL PRIVILEGES ON DATABASE django TO django_user;
 \q
 ```
-Make an automatic daily backup of the database at 00:59. Run
+Make an automatic daily backup of the database at 00:59.  
+Create dir for backups.
+```bash
+sudo mkdir /var/postgres_backup/
+```
+Change dir owner.
+```bash
+chown postgres.postgres -R /var/postgres_backup
+```
+Add job to crontab. Run
+
 ```bash
 sudo crontab -u postgres -e 
 ```
 and add this line:
 ``` bash
-59 0 * * * pg_basebackup -Ft -z -D /opt/postgres_backup/$(date +\%d_\%m_\%Y)/
+59 0 * * * pg_basebackup -Ft -z -D /var/postgres_backup/$(date +\%d_\%m_\%Y)/
 ```
 ### Install pgAdmin.
 Create virtualenv for pgAdmin.
